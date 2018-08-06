@@ -111,6 +111,14 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 	- Closing the browser tab for the Jupyter terminal, will return you to the Jupyter homepage.
 	- Click on the __amazon-sagemaker-workshop__ folder to enter it and start the next module.
 
+### Using Jupyter Notebboks
+
+Jupyter notebooks tell a story by combining explanatory text and code. There are two types of "cells" in a notebook:  code cells, and "markdown" cells with explanatory text.  
+- You will be running the code cells.  These are distinguished by having "In" next to them in the left margin next to the cell, and a greyish background.  Markdown cells lack "In" and have a white background.
+- To run a code cell, simply click in it, then either click the **Run Cell** button in the notebook's toolbar, or use Control+Enter from your computer's keyboard.  
+- It may take a few seconds to a few minutes for a code cell to run.  Please run each code cell in order, and only once, to avoid repeated operations.  For example, running the same training job cell twice might create two training jobs, possibly exceeding your service limits.
+- Run through each cell in the video-game-sales notebook to complete this module
+
 ## Module 2:  Video Game Sales Notebook
 
 In this module, we'll work our way through an example Jupyter notebook that demonstrates how to use an Amazon-provided algorithm in SageMaker. More specifically, we'll use SageMaker's version of XGBoost, a popular and efficient open-source implementation of the gradient boosted trees algorithm. Gradient boosting is a supervised learning algorithm that attempts to predict a target variable by combining the estimates of a set of simpler, weaker models. XGBoost has done remarkably well in machine learning competitions because it robustly handles a wide variety of data types, relationships, and distributions. It often is a useful, go-to algorithm in working with structured data, such as data that might be found in relational databases and flat files. 
@@ -120,15 +128,13 @@ To begin, follow these steps:
 1. Click the `video-game-sales.ipynb` notebook file name to open it.
 2. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.
 
->__NOTE:__ Do **NOT** paste the entire path (s3://.......), just the bucket name.  
-
-Jupyter notebooks tell a story by combining explanatory text and code. There are two types of "cells" in a notebook:  code cells, and "markdown" cells with explanatory text.  
-- You will be running the code cells.  These are distinguished by having "In" next to them in the left margin next to the cell, and a greyish background.  Markdown cells lack "In" and have a white background.
-- To run a code cell, simply click in it, then either click the **Run Cell** button in the notebook's toolbar, or use Control+Enter from your computer's keyboard.  
-- It may take a few seconds to a few minutes for a code cell to run.  Please run each code cell in order, and only once, to avoid repeated operations.  For example, running the same training job cell twice might create two training jobs, possibly exceeding your service limits.
-- Run through each cell in the video-game-sales notebook to complete this module
-
->__NOTE__: Training the model for this example typically takes about 5 minutes.
+<div class="alert alert-danger">
+  <strong>Note!</strong> Do <strong>NOT</strong> paste the entire path (s3://.......), just the bucket name.
+</div>
+  
+<div class="alert alert-success">
+  <strong>Info!</strong> Training the model for this example typically takes about 5 minutes.
+</div>
 
 ## Module 3:  Distributed Training with TensorFlow Notebook
 
@@ -137,7 +143,9 @@ In this module we will be using images of handwritten digits from the [MNIST Dat
 1. On your notebook instance, navigate to the **amazon-sagemaker-workshop** folder and click on the `TensorFlow_Distributed_MNIST.ipynb` notebook file to open it.
 2. Follow the directions in the the notebook.
 
->__NOTE:__ Training the model for this example typically takes about 8 minutes.
+<div class="alert alert-success">
+  <strong>Info!</strong> Training the model for this example typically takes about 8 minutes.
+</div>
 
 ## Module 4:  Image Classification Notebook
 
@@ -148,7 +156,9 @@ Follow these steps:
 1. On your notebook instance, navigate to the **amazon-sagemaker-workshop** folder and click on the `Image-classification-transfer-learning.ipynb` notebook file to open it.
 2. Follow the directions in the the notebook.
 
->__NOTE:__ Training the model for this example typically takes about 10 minutes. However, keep in mind that this is relatively short because transfer learning is used rather than training from scratch, which could take many hours.
+<div class="alert alert-success">
+  <strong>Info!</strong> Training the model for this example typically takes about 10 minutes. However, keep in mind that this is relatively short because transfer learning is used rather than training from scratch, which could take many hours.
+</div>
 
 ## Cleanup Guide
 
