@@ -109,7 +109,7 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 		$ exit
 	```	
 	- Closing the browser tab for the Jupyter terminal, will return you to the Jupyter homepage.
-	- Click on the __amazon-sagemaker-workshop__ to enter it and start Module 2.
+	- Click on the __amazon-sagemaker-workshop__ folder to enter it and start the next module.
 
 ## Module 2:  Video Game Sales Notebook
 
@@ -118,7 +118,9 @@ In this module, we'll work our way through an example Jupyter notebook that demo
 To begin, follow these steps:
 
 1. Click the `video-game-sales.ipynb` notebook file name to open it.
-2. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.  Do NOT paste the entire path (s3://.......), just the bucket name.  
+2. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.
+
+>__NOTE:__ Do **NOT** paste the entire path (s3://.......), just the bucket name.  
 
 Jupyter notebooks tell a story by combining explanatory text and code. There are two types of "cells" in a notebook:  code cells, and "markdown" cells with explanatory text.  
 - You will be running the code cells.  These are distinguished by having "In" next to them in the left margin next to the cell, and a greyish background.  Markdown cells lack "In" and have a white background.
