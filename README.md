@@ -14,7 +14,7 @@ Some of the resources you will launch as part of this workshop are eligible for 
 
 ### AWS Region
 
-SageMaker is not available in all AWS Regions at this time.  Accordingly, we recommend running this workshop in one of the following supported AWS Regions:  N. Virginia, Oregon, Ohio, or Ireland.
+SageMaker is not available in all AWS Regions at this time.  Accordingly, we recommend running this workshop in the __Oregon__ Region.
 
 Once you've chosen a region, you should create all of the resources for this workshop there, including a new Amazon S3 bucket and a new SageMaker notebook instance. Make sure you select your region from the dropdown in the upper right corner of the AWS Console before getting started.
 
@@ -76,15 +76,19 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 
 ![Notebook Instances](./images/Picture2.png)
 
-4. Type [First Name]-[Last Name]-workshop into the **Notebook instance name** text box, and select ml.m4.xlarge for the **Notebook instance type**.
+4. Type [First Name]-[Last Name]-workshop into the **Notebook instance name** text box, and select *ml.m4.xlarge* for the **Notebook instance type**.
 
-5. For IAM role, choose **Select an existing role** and choose one named "AmazonSageMaker-ExecutionRole-XXXX".
+5. For IAM role, choose **Create a new role** and specify **Any S3 Bucket**, then select **Create Role**.
+
+![Create Role](./images/create-role.png)
+
+6. Ensure that the new role has been created.
 
 ![Create Notebook Instance](./images/create-instance.png)
 
-6. You can expand the "Tags" section and add tags here if required.
+7. You can expand the "Tags" section and add tags here if required.
 
-7. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.  This will take several minutes to complete.
+8. You will be taken back to the Create Notebook instance page.  Click **Create notebook instance**.  This will take several minutes to complete.
 
 ### 3. Accessing the Notebook Instance
 
@@ -96,6 +100,16 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 
 ![Open Notebook](./images/Picture5.png)
 
+3. Download the Jupyter Notebooks for the Lab.
+	- In your notebook instance, click the __New__ button on the right and select __Terminal__.
+	- When a new terminal tab opens, enter the following commands:
+	```terminal
+		$ cd SageMaker
+		$ git clone https://github.com/darkreapyre/amazon-sagemaker-workshop
+		$ exit
+	```	
+	- Closing the browser tab for the Jupyter terminal, will return you to the Jupyter homepage.
+	- Click on the __amazon-sagemaker-workshop__ to enter it and start Module 2.
 
 ## Module 2:  Video Game Sales Notebook
 
@@ -103,15 +117,8 @@ In this module, we'll work our way through an example Jupyter notebook that demo
 
 To begin, follow these steps:
 
-1. Download this repository to your computer by clicking the green **Clone or download**  button from the upper right of this page, then **Download ZIP**.
-	- If you aren't accessing this on Github, you can download this here: [sagemaker-lab.zip](./sagemaker-lab.zip)
-2. In your notebook instance, click the **New** button on the right and select **Folder**.  
-3. Click the checkbox next to your new folder, click the **Rename** button above in the menu bar, and give the folder a name such as 'video-game-sales'.
-4. Click the folder to enter it.
-5. To upload the notebook, click the **Upload** button on the right, then in the file selection popup, select the file 'video-game-sales.ipynb' from the folder on your computer where you downloaded this GitHub repository. Then click the blue **Upload** button that appears in the notebook next to the file name.
-6. You are now ready to begin the notebook:  click the notebook's file name to open it.
-7. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.  Do NOT paste the entire path (s3://.......), just the bucket name.  
-
+1. Click the `video-game-sales.ipynb` notebook file name to open it.
+2. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.  Do NOT paste the entire path (s3://.......), just the bucket name.  
 
 Jupyter notebooks tell a story by combining explanatory text and code. There are two types of "cells" in a notebook:  code cells, and "markdown" cells with explanatory text.  
 - You will be running the code cells.  These are distinguished by having "In" next to them in the left margin next to the cell, and a greyish background.  Markdown cells lack "In" and have a white background.
@@ -119,20 +126,16 @@ Jupyter notebooks tell a story by combining explanatory text and code. There are
 - It may take a few seconds to a few minutes for a code cell to run.  Please run each code cell in order, and only once, to avoid repeated operations.  For example, running the same training job cell twice might create two training jobs, possibly exceeding your service limits.
 - Run through each cell in the video-game-sales notebook to complete this module
 
-<p><strong>NOTE: training the model for this example typically takes about 5 minutes.</strong></p>
-
+>__NOTE__: Training the model for this example typically takes about 5 minutes.
 
 ## Module 3:  Distributed Training with TensorFlow Notebook
 
 In this module we will be using images of handwritten digits from the [MNIST Database](http://yann.lecun.com/exdb/mnist/) to demonstrate how to perform distributed training using SageMaker. Using a convolutional neural network model based on the [TensorFlow MNIST Example](https://github.com/tensorflow/models/tree/master/official/mnist), we will demonstrate how to use a Jupyter notebook and the [SageMaker Python SDK](https://github.com/aws/sagemaker-python-sdk) to create your own script to pre-process data, train a model, create a SageMaker hosted endpoint, and make predictions against this endpoint. The model will predict what the handwritten digit is in the image presented for prediction. Besides demonstrating a "bring your own script" for TensorFlow use case, the example also showcases how easy it is to set up a cluster of multiple instances for model training in SageMaker.
 
-1. In your notebook instance, click the **New** button on the right and select **Folder**.
-2. Click the checkbox next to your new folder, click the **Rename** button above in the menu bar, and give the folder a name such as 'tensorflow-distributed'.
-3. Click the folder to enter it.
-4. To upload the notebook, click the **Upload** button on the right, then in the file selection popup, select the file 'TensorFlow_Distributed_MNIST.ipynb' from the folder on your computer where you downloaded this GitHub repository. Then click the blue **Upload** button that appears in the notebook next to the file name.
-5. You are now ready to begin the notebook:  click the notebook's file name to open it, then follow the directions in the notebook.
+1. In your notebook instance, navigate to the **amazon-sagemaker-workshop** folder and click on the `TensorFlow_Distributed_MNIST.ipynb` notebook file to open it.
+2. Follow the directions in the the notebook.
 
-<p><strong>NOTE:  training the model for this example typically takes about 8 minutes.</strong></p>
+>__NOTE:__ Training the model for this example typically takes about 8 minutes.
 
 ## Module 4:  Image Classification Notebook
 
@@ -146,7 +149,7 @@ Follow these steps:
 4. To upload the notebook, click the **Upload** button on the right, then in the file selection popup, select the file 'Image-classification-transfer-learning.ipynb' from the folder on your computer where you downloaded this GitHub repository. Then click the blue **Upload** button that appears in the notebook next to the file name.
 5. You are now ready to begin the notebook:  click the notebook's file name to open it, then follow the directions in the notebook.
 
-<p><strong>NOTE:  training the model for this example typically takes about 10 minutes.</strong> However, keep in mind that this is relatively short because transfer learning is used rather than training from scratch, which could take many hours.</p>
+>__NOTE:__ Training the model for this example typically takes about 10 minutes. However, keep in mind that this is relatively short because transfer learning is used rather than training from scratch, which could take many hours.
 
 ## Cleanup Guide
 
