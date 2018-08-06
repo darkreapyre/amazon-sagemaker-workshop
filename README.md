@@ -128,13 +128,17 @@ To begin, follow these steps:
 1. Click the `video-game-sales.ipynb` notebook file name to open it.
 2. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.
 
+<p>
 <div class="alert alert-danger">
   <strong>Note!</strong> Do <strong>NOT</strong> paste the entire path (s3://.......), just the bucket name.
 </div>
-  
+</p>
+
+<p>
 <div class="alert alert-success">
   <strong>Info!</strong> Training the model for this example typically takes about 5 minutes.
 </div>
+</p>
 
 ## Module 3:  Distributed Training with TensorFlow Notebook
 
