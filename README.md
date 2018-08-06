@@ -157,13 +157,17 @@ Follow these steps:
 2. Follow the directions in the the notebook.
 3. In the ```bucket = '<your_s3_bucket_name_here>'``` code line, paste the name of the S3 bucket you created in Module 1 to replace ```<your_s3_bucket_name_here>```.  The code line should now read similar to ```bucket = 'smworkshop-john-smith'```.
 
+<p>
 <div class="alert alert-danger">
   <strong>Note!</strong> Do <strong>NOT</strong> paste the entire path (s3://.......), just the bucket name.
 </div>
+</p>
 
+<p>
 <div class="alert alert-success">
   <strong>Info!</strong> Training the model for this example typically takes about 10 minutes. However, keep in mind that this is relatively short because transfer learning is used rather than training from scratch, which could take many hours.
 </div>
+</p>
 
 ## Cleanup Guide
 
