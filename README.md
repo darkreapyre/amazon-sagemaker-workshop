@@ -66,7 +66,7 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 
 ### 2. Launching the Notebook Instance
 
-1. In the upper-right corner of the AWS Management Console, confirm you are in the desired AWS region. Select N. Virginia, Oregon, Ohio, or Ireland.
+1. In the upper-right corner of the AWS Management Console, confirm you are in the **US West (Oregon)** Region.
 
 2. Click on Amazon SageMaker from the list of all services.  This will bring you to the Amazon SageMaker console homepage.
 
@@ -78,9 +78,13 @@ Use the console or AWS CLI to create an Amazon S3 bucket. Keep in mind that your
 
 4. Type [First Name]-[Last Name]-workshop into the **Notebook instance name** text box, and select *ml.m4.xlarge* for the **Notebook instance type**.
 
-5. For IAM role, choose **Create a new role** and specify **Any S3 Bucket**, then select **Create Role**.
+5. For IAM role, choose Select an existing role and choose one named `AmazonSageMaker-ExecutionRole-XXXX`.
 
-![Create Role](./images/create-role.png)
+	<p>
+	<div class="alert alert-danger">
+	  <strong>Note!</strong> Make sure to use the IAM Role provided by the instructor.
+	</div>
+	</p>
 
 6. Ensure that the new role has been created.
 
