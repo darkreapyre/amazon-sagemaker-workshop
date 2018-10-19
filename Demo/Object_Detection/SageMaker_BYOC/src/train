@@ -248,7 +248,7 @@ def train():
     final_epoch     = 120
     steps_per_epoch = 1000
     
-    history = model.fit_generator(
+    model.fit_generator(
         generator=train_generator,
         steps_per_epoch=steps_per_epoch,
         epochs=final_epoch,
