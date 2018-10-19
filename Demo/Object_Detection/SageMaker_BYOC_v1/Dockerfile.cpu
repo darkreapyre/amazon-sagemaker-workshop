@@ -1,0 +1,64 @@
+# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+#     http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+FROM ubuntu:16.04
+
+RUN apt-get -y update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    bzip2 \
+    libopencv-dev \
+    libopenblas-dev \
+    libjemalloc-dev \
+    libgfortran3 \
+    libgtk2.0-dev \
+    python-dev \
+    wget \
+    curl \
+    nginx \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install all of the packages
+RUN wget https://bootstrap.pypa.io/get-pip.py && python get-pip.py
+RUN pip install \
+    h5py \
+    numpy==1.14.5 \
+    scipy \
+    scikit-learn \ 
+    scikit-image \
+    pandas \
+    flask \
+    gevent \
+    gunicorn \
+    tensorflow \
+    opencv-python \
+    matplotlib \
+    pillow \
+    keras
+
+RUN mkdir /root/.keras
+COPY keras.json /root/.keras/
+
+RUN (cd /usr/local/lib/python2.7/dist-packages/scipy/.libs; rm *; ln ../../numpy/.libs/* .)
+RUN rm -rf /root/.cache
+
+# Env Variables
+ENV PYTHONUNBUFFERED=TRUE
+ENV PYTHONDONTWRITEBYTECODE=TRUE
+ENV PATH="/opt/program:${PATH}"
+
+# Set up the program in the image
+COPY src/model /opt/program
+RUN chmod +x /opt/program/train
+RUN chmod +x /opt/program/serve
+WORKDIR /opt/program
