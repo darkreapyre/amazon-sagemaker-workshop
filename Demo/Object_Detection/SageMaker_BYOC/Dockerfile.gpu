@@ -51,8 +51,7 @@ RUN pip --no-cache-dir install \
 #        opencv-python-headless \
         opencv-python==3.3.0.9 \
         matplotlib \
-        pillow \
-        tqdm
+        pillow
 
 RUN pip --no-cache-dir install --upgrade\
     tensorflow-gpu

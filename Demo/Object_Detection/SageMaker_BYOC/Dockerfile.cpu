@@ -44,8 +44,7 @@ RUN pip install \
     opencv-python \
     matplotlib \
     pillow \
-    keras \
-    tqdm
+    keras
 
 RUN mkdir /root/.keras
 COPY keras.json /root/.keras/

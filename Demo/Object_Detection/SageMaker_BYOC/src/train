@@ -37,7 +37,6 @@ IMAGE_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 MEAN_COLOR = [123, 117, 104]
 # The color channel order in the original SSD is BGR, so we'll have the model reverse the color channel order of the input images.
 SWAP_CHANNELS = [2, 1, 0]
-CLASSES = 20 # Number of positive classes for Pascal VOC
 # The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets
 SCALES = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05]
 # The anchor box aspect ratios used in the original SSD300; the order matters
@@ -47,7 +46,6 @@ ASPECT_RATIOS = [[1.0, 2.0, 0.5],
                  [1.0, 2.0, 0.5, 3.0, 1.0/3.0],
                  [1.0, 2.0, 0.5],
                  [1.0, 2.0, 0.5]]
-two_boxes_for_arl = True
 # The space between two adjacent anchor box center points for each predictor layer.
 STEPS = [8, 16, 32, 64, 100, 300]
 # The offsets of the first anchor box center points from the top and left borders of the image as a fraction of the step size for each predictor layer.
@@ -57,6 +55,14 @@ CLIP_BOXES = False
 # The variances by which the encoded target coordinates are divided as in the original implementation
 VARIANCES = [0.1, 0.1, 0.2, 0.2]
 NORMALIZE_COORDS = True
+# The XML parser needs to now what object class names to look for and in which order to map them to integers.
+CLASSES = ['background',
+           'aeroplane', 'bicycle', 'bird', 'boat',
+           'bottle', 'bus', 'car', 'cat',
+           'chair', 'cow', 'diningtable', 'dog',
+           'horse', 'motorbike', 'person', 'pottedplant',
+           'sheep', 'sofa', 'train', 'tvmonitor']
+N_CLASSES = len(CLASSES)-1
 MODEL_NAME = 'model.h5'
 
 # Configure the trainer environemnt for SageMaker training
@@ -64,7 +70,8 @@ env = create_trainer_environment()
 print('creating SageMaker trainer environment:\n%s' % str(env))
 
 # Get hyperparameters
-batch_size = env.hyperparameters.get('batch_size', default=16, object_type=int)
+batch_size = env.hyperparameters.get('batch_size', default=32, object_type=int)
+#batch_size = 32
 lr = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
 alpha = env.hyperparameters.get('alpha', default=1.0, object_type=float)
 beta_1 = env.hyperparameters.get('beta_1', default=0.9, object_type=float)
@@ -74,191 +81,84 @@ decay = env.hyperparameters.get('decay', default=0.0, object_type=float)
 EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
 gpu_count = env.hyperparameters.get('gpu_count', default=0, object_type=int)
 
-
-
-# Helper functions for Image Augmentation
-def load_image(data_dir, image_file):
-    """
-    Load RGB images from a file
-    """
-    return mpimg.imread(os.path.join(data_dir, image_file.strip()))
-
-def crop(image):
-    """
-    Crop the image (removing the sky at the top and the car front at the bottom)
-    """
-    return image[60:-25, :, :] # remove the sky and the car front
-
-def resize(image):
-    """
-    Resize the image to the input shape used by the network model
-    """
-    return cv2.resize(image, (IMAGE_WIDTH, IMAGE_HEIGHT), cv2.INTER_AREA)
-
-def rgb2yuv(image):
-    """
-    Convert the image from RGB to YUV (This is what the NVIDIA model does)
-    """
-    return cv2.cvtColor(image, cv2.COLOR_RGB2YUV)
-
-def preprocess(image):
-    """
-    Combine all preprocess functions into one
-    """
-    image = crop(image)
-    image = resize(image)
-    image = rgb2yuv(image)
-    return image
-
-def choose_image(data_dir, center, left, right, steering_angle):
-    """
-    Randomly choose an image from the center, left or right, and adjust
-    the steering angle.
-    """
-    choice = np.random.choice(3)
-    if choice == 0:
-        return load_image(data_dir, left), steering_angle + 0.2
-    elif choice == 1:
-        return load_image(data_dir, right), steering_angle - 0.2
-    return load_image(data_dir, center), steering_angle
-
-def random_flip(image, steering_angle):
-    """
-    Randomly flipt the image left <-> right, and adjust the steering angle.
-    """
-    if np.random.rand() < 0.5:
-        image = cv2.flip(image, 1)
-        steering_angle = -steering_angle
-    return image, steering_angle
-
-def random_translate(image, steering_angle, range_x, range_y):
-    """
-    Randomly shift the image virtially and horizontally (translation).
-    """
-    trans_x = range_x * (np.random.rand() - 0.5)
-    trans_y = range_y * (np.random.rand() - 0.5)
-    steering_angle += trans_x * 0.002
-    trans_m = np.float32([[1, 0, trans_x], [0, 1, trans_y]])
-    height, width = image.shape[:2]
-    image = cv2.warpAffine(image, trans_m, (width, height))
-    return image, steering_angle
-
-def distort(image):
-    """
-    Method for adding random distortion to dataset images, including random brightness adjust, and a random
-    vertical shift of the horizon position
-    """
-    new_img = image.astype(float)
-    # random brightness - the mask bit keeps values from going beyond (0,255)
-    value = np.random.randint(-28, 28)
-    if value > 0:
-        mask = (new_img[:,:,0] + value) > 255 
-    if value <= 0:
-        mask = (new_img[:,:,0] + value) < 0
-    new_img[:,:,0] += np.where(mask, 0, value)
-    # random shadow - full height, random left/right side, random darkening
-    h,w = new_img.shape[0:2]
-    mid = np.random.randint(0,w)
-    factor = np.random.uniform(0.6,0.8)
-    if np.random.rand() > .5:
-        new_img[:,0:mid,0] *= factor
-    else:
-        new_img[:,mid:w,0] *= factor
-    # randomly shift horizon
-    h,w,_ = new_img.shape
-    horizon = 2*h/5
-    v_shift = np.random.randint(-h/8,h/8)
-    pts1 = np.float32([[0,horizon],[w,horizon],[0,h],[w,h]])
-    pts2 = np.float32([[0,horizon+v_shift],[w,horizon+v_shift],[0,h],[w,h]])
-    M = cv2.getPerspectiveTransform(pts1,pts2)
-    new_img = cv2.warpPerspective(new_img,M,(w,h), borderMode=cv2.BORDER_REPLICATE)
-    return new_img.astype(np.uint8)
-
-def random_brightness(image):
-    """
-    Randomly adjust brightness of the image.
-    """
-    # HSV (Hue, Saturation, Value) is also called HSB ('B' for Brightness).
-    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
-    ratio = 1.0 + 0.4 * (np.random.rand() - 0.5)
-    hsv[:,:,2] =  hsv[:,:,2] * ratio
-    return cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
-
-def augment(data_dir, center, left, right, steering_angle, range_x=100, range_y=10):
-    """
-    Generate an augumented image and adjust steering angle.
-    (The steering angle is associated with the center image)
-    """
-    image, steering_angle = choose_image(data_dir, center, left, right, steering_angle)
-    image, steering_angle = random_flip(image, steering_angle)
-    image, steering_angle = random_translate(image, steering_angle, range_x, range_y)
-    image = distort(image)
-    image = random_brightness(image)
-    return image, steering_angle
-
-def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_training):
-    """
-    Generate training image give image paths and associated steering angles
-    """
-    images = np.empty([batch_size, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS])
-    steers = np.empty(batch_size)
-    while True:
-        i = 0
-        for index in np.random.permutation(image_paths.shape[0]):
-            center, left, right = image_paths[index]
-            steering_angle = steering_angles[index]
-            # argumentation
-            if is_training and np.random.rand() < 1.:
-                image, steering_angle = augment(data_dir, center, left, right, steering_angle)
-            else:
-                image = load_image(data_dir, center) 
-            # add the image and steering angle to the batch
-            images[i] = preprocess(image)
-            steers[i] = steering_angle
-            i += 1
-            if i == batch_size:
-                break
-        yield images, steers
-
 # Helper functions for model training
-def load_data(data_dir, test_size):
+def lr_schedule(epoch):
+    """
+    Define a learning rate schedule.
+    """
+    if epoch < 80:
+        return 0.001
+    elif epoch < 100:
+        return 0.0001
+    else:
+        return 0.00001
+
+def load_data(data_dir):
     """
     Load training data and split it into training and validation set
     """
-    data_df = pd.read_csv(os.path.join(data_dir, 'driving_log.csv'))
-
-    X = data_df[['center', 'left', 'right']].values
-    y = data_df['steering'].values
-
-    X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=test_size, random_state=0)
-
-    return X_train, X_valid, y_train, y_valid
-
-def build_model(input_shape):
-    """
-    Comma.ai model
-    """
-    model = Sequential()
-    model.add(
-        Lambda(
-            lambda x: x/127.55 -1,
-            input_shape=input_shape
-        )
+    train_dataset = DataGenerator(
+        load_images_into_memory=True,
+        hdf5_dataset_path=os.path.join(data_dir, 'train.h5')
     )
-    model.add(Conv2D(16, (8, 8), strides=(4, 4), padding="same"))
-    model.add(ELU())
-    model.add(Conv2D(32, (5, 5), strides=(2, 2), padding="same"))
-    model.add(ELU())
-    model.add(Conv2D(64, (5, 5), strides=(2, 2), padding="same"))
-    model.add(Flatten())
-    model.add(Dropout(.2))
-    model.add(ELU())
-    model.add(Dense(512))
-    model.add(Dropout(.5))
-    model.add(ELU())
-    model.add(Dense(1))
-    model.summary()
-    return model
+    val_dataset = DataGenerator(
+        load_images_into_memory=True,
+        hdf5_dataset_path=os.path.join(data_dir, 'test.h5')
+    )
+
+    # For the training generator:
+    ssd_data_augmentation = SSDDataAugmentation(img_height=IMAGE_HEIGHT,
+                                                img_width=IMAGE_WIDTH,
+                                                background=MEAN_COLOR)
+
+    # For the validation generator:
+    convert_to_3_channels = ConvertTo3Channels()
+    resize = Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH)
+
+    # The encoder constructor needs the spatial dimensions of the model's predictor layers to create the anchor boxes.
+    predictor_sizes = [model.get_layer('conv4_3_norm_mbox_conf').output_shape[1:3],
+                    model.get_layer('fc7_mbox_conf').output_shape[1:3],
+                    model.get_layer('conv6_2_mbox_conf').output_shape[1:3],
+                    model.get_layer('conv7_2_mbox_conf').output_shape[1:3],
+                    model.get_layer('conv8_2_mbox_conf').output_shape[1:3],
+                    model.get_layer('conv9_2_mbox_conf').output_shape[1:3]]
+
+    ssd_input_encoder = SSDInputEncoder(img_height=IMAGE_HEIGHT,
+                                        img_width=IMAGE_WIDTH,
+                                        n_classes=N_CLASSES,
+                                        predictor_sizes=predictor_sizes,
+                                        scales=SCALES,
+                                        aspect_ratios_per_layer=ASPECT_RATIOS,
+                                        two_boxes_for_ar1=True,
+                                        steps=STEPS,
+                                        offsets=OFFSETS,
+                                        clip_boxes=CLIP_BOXES,
+                                        variances=VARIANCES,
+                                        matching_type='multi',
+                                        pos_iou_threshold=0.5,
+                                        neg_iou_limit=0.5,
+                                        normalize_coords=NORMALIZE_COORDS
+                                    )
+
+    # Create the generator handles that will be passed to Keras' `fit_generator()` function.
+    train_generator = train_dataset.generate(batch_size=batch_size,
+                                            shuffle=True,
+                                            transformations=[ssd_data_augmentation],
+                                            label_encoder=ssd_input_encoder,
+                                            returns={'processed_images',
+                                                    'encoded_labels'},
+                                            keep_images_without_gt=False)
+
+    val_generator = val_dataset.generate(batch_size=batch_size,
+                                        shuffle=False,
+                                        transformations=[convert_to_3_channels,
+                                                        resize],
+                                        label_encoder=ssd_input_encoder,
+                                        returns={'processed_images',
+                                                'encoded_labels'},
+                                        keep_images_without_gt=False)
+
+    return train_generator, val_generator
 
 def save(model, model_dir):
     print("Saving the trained model ...")
@@ -284,50 +184,78 @@ def train():
     print("Starting model training ...")
     # Local variables
     data_dir = os.path.join(env.channel_dirs['train'], 'data')
-    test_size = 0.1
 
     # Load the data
-    X_train, X_valid, y_train, y_valid = load_data(data_dir, test_size)
+    traing_generator, val_generator = load_data(data_dir)
         
     # Load the model and additional parameters
-    print("\ncomma.ai Model Summary\n")
-    model = build_model(IMAGE_SHAPE)
+    model = ssd_300(image_size=IMAGE_SHAPE,
+                    n_classes=N_CLASSES,
+                    mode='training',
+                    l2_regularization=0.0005,
+                    scales=SCALES,
+                    aspect_ratios_per_layer=ASPECT_RATIOS,
+                    two_boxes_for_ar1=True,
+                    steps=STEPS,
+                    offsets=OFFSETS,
+                    clip_boxes=CLIP_BOXES,
+                    variances=VARIANCES,
+                    normalize_coords=NORMALIZE_COORDS,
+                    subtract_mean=MEAN_COLOR,
+                    swap_channels=SWAP_CHANNELS
+                )
+
+    weights_path = './VGG_ILSVRC_16_layers_fc_reduced.h5'
+    model.load_weights(weights_path, by_name=True)
+    adam = Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    ssd_loss = SSDLoss(neg_pos_ratio=3, alpha=1.0)
         
-    # Save model Checpoint
-    checkpoint = ModelCheckpoint(
-        os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
-        verbose=0,
-        save_best_only=1,
-        mode='auto'
+    # Save model Checkpoint
+    model_checkpoint = ModelCheckpoint(
+        filepath=os.path.join(env.model_dir, 'model-{epoch:03d}.h5'),
+        monitor='val_loss',
+        verbose=1,
+        save_best_only=True,
+        save_weights_only=False,
+        mode='auto',
+        period=1
     )
+    
+    csv_logger = CSVLogger(
+        filename=os.path.join(env.model_dir, 'training_log.csv'),
+        separator=',',
+        append=True
+    )
+
+    learning_rate_scheduler = LearningRateScheduler(
+        schedule=lr_schedule,
+        verbose=1
+    )
+    terminate_on_nan = TerminateOnNaN()
+
+    callbacks = [model_checkpoint,
+             csv_logger,
+             learning_rate_scheduler,
+             terminate_on_nan]
 
     # Compile model
     if gpu_count > 1:
         model = multi_gpu_model(model, gpus=gpu_count)
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=learning_rate))
+    model.compile(optimizer=adam, loss=ssd_loss.compute_loss)
         
     # Fit the model
-    model.fit_generator(
-        batch_generator(
-            data_dir,
-            X_train,
-            y_train,
-            batch_size,
-            True
-        ),
-        steps_per_epoch=len(X_train)//batch_size,
-        epochs=EPOCHS,
-#        max_queue_size=1,
-        validation_data=batch_generator(
-            data_dir,
-            X_valid,
-            y_valid,
-            batch_size,
-            False
-        ),
-        validation_steps=len(X_valid)//batch_size,
-        callbacks=[checkpoint],
-        verbose=1
+    initial_epoch   = 0
+    final_epoch     = 120
+    steps_per_epoch = 1000
+    
+    history = model.fit_generator(
+        generator=train_generator,
+        steps_per_epoch=steps_per_epoch,
+        epochs=final_epoch,
+        callbacks=callbacks,
+        validation_data=val_generator,
+        validation_steps=ceil(val_dataset_size/batch_size),
+        initial_epoch=initial_epoch
     )
 
     # Save the model
