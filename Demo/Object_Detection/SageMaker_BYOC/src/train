@@ -1,43 +1,62 @@
 #!/usr/bin/env python
 
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License"). You
-# may not use this file except in compliance with the License. A copy of
-# the License is located at
-#
-#     http://aws.amazon.com/apache2.0/
-#
-# or in the "license" file accompanying this file. This file is
-# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
-# ANY KIND, either express or implied. See the License for the specific
-# language governing permissions and limitations under the License.
-
-# Applied from https://github.com/awslabs/amazon-sagemaker-examples/tree/master/hyperparameter_tuning/keras_bring_your_own
+# Applied from https://github.com/pierluigiferrari/ssd_keras
 from __future__ import absolute_import
 from __future__ import print_function
 
 import keras
-from keras.preprocessing.image import *
-from keras.models import Sequential, Model
-from keras.layers import Conv2D, Flatten, Lambda, ELU
-from keras.layers.core import Dense, Dropout, Activation
-from keras.optimizers import Adam
-from keras.callbacks import Callback, ModelCheckpoint
-from keras.layers.normalization import BatchNormalization
-from keras.regularizers import l2
-from keras.utils import multi_gpu_model
-from sklearn.model_selection import train_test_split
-import os, shutil, random, json, glob, cv2, sys, traceback
+from keras.optimizers import Adam, SGD
+from keras.callbacks import ModelCheckpoint, LearningRateScheduler, TerminateOnNaN, CSVLogger
+from keras import backend as K
+from keras.models import load_model
+from math import ceil
 import numpy as np
-import pandas as pd
-import matplotlib.image as mpimg
+
+from models.keras_ssd300 import ssd_300
+from keras_loss_function.keras_ssd_loss import SSDLoss
+from keras_layers.keras_layer_AnchorBoxes import AnchorBoxes
+from keras_layers.keras_layer_DecodeDetections import DecodeDetections
+from keras_layers.keras_layer_DecodeDetectionsFast import DecodeDetectionsFast
+from keras_layers.keras_layer_L2Normalization import L2Normalization
+
+from ssd_encoder_decoder.ssd_input_encoder import SSDInputEncoder
+from ssd_encoder_decoder.ssd_output_decoder import decode_detections, decode_detections_fast
+
+from data_generator.object_detection_2d_data_generator import DataGenerator
+from data_generator.object_detection_2d_geometric_ops import Resize
+from data_generator.object_detection_2d_photometric_ops import ConvertTo3Channels
+from data_generator.data_augmentation_chain_original_ssd import SSDDataAugmentation
+from data_generator.object_detection_2d_misc_utils import apply_inverse_transforms
 
 from environment import create_trainer_environment
 
 # Global parameters
-IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
+IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 300, 300, 3
 IMAGE_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
+# The per-channel mean of the images in the dataset. Do not change this value if you're using any of the pre-trained weights.
+MEAN_COLOR = [123, 117, 104]
+# The color channel order in the original SSD is BGR, so we'll have the model reverse the color channel order of the input images.
+SWAP_CHANNELS = [2, 1, 0]
+CLASSES = 20 # Number of positive classes for Pascal VOC
+# The anchor box scaling factors used in the original SSD300 for the Pascal VOC datasets
+SCALES = [0.1, 0.2, 0.37, 0.54, 0.71, 0.88, 1.05]
+# The anchor box aspect ratios used in the original SSD300; the order matters
+ASPECT_RATIOS = [[1.0, 2.0, 0.5],
+                 [1.0, 2.0, 0.5, 3.0, 1.0/3.0],
+                 [1.0, 2.0, 0.5, 3.0, 1.0/3.0],
+                 [1.0, 2.0, 0.5, 3.0, 1.0/3.0],
+                 [1.0, 2.0, 0.5],
+                 [1.0, 2.0, 0.5]]
+two_boxes_for_arl = True
+# The space between two adjacent anchor box center points for each predictor layer.
+STEPS = [8, 16, 32, 64, 100, 300]
+# The offsets of the first anchor box center points from the top and left borders of the image as a fraction of the step size for each predictor layer.
+OFFSETS= [0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+# Whether or not to clip the anchor boxes to lie entirely within the image boundaries
+CLIP_BOXES = False
+# The variances by which the encoded target coordinates are divided as in the original implementation
+VARIANCES = [0.1, 0.1, 0.2, 0.2]
+NORMALIZE_COORDS = True
 MODEL_NAME = 'model.h5'
 
 # Configure the trainer environemnt for SageMaker training
@@ -49,6 +68,8 @@ batch_size = env.hyperparameters.get('batch_size', default=16, object_type=int)
 learning_rate = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
 EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
 gpu_count = env.hyperparameters.get('gpu_count', default=0, object_type=int)
+
+
 
 # Helper functions for Image Augmentation
 def load_image(data_dir, image_file):
