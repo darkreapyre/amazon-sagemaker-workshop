@@ -76,9 +76,9 @@ lr = env.hyperparameters.get('learning_rate', default=.001, object_type=float)
 alpha = env.hyperparameters.get('alpha', default=1.0, object_type=float)
 beta_1 = env.hyperparameters.get('beta_1', default=0.9, object_type=float)
 beta_2 = env.hyperparameters.get('beta_2', default=0.999, object_type=float)
-epsilon = env.hyperparameters,get('eposilon', default==1e-08, object_type=float)
+epsilon = env.hyperparameters.get('eposilon', default==1e-08, object_type=float)
 decay = env.hyperparameters.get('decay', default=0.0, object_type=float)
-EPOCHS = env.hyperparameters.get('epochs', default=10, object_type=int)
+EPOCHS = env.hyperparameters.get('epochs', default=30, object_type=int)
 gpu_count = env.hyperparameters.get('gpu_count', default=0, object_type=int)
 
 # Helper functions for model training
