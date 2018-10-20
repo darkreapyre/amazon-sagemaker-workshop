@@ -33,6 +33,32 @@ import tensorflow as tf
 from keras import backend as K
 from keras.models import load_model
 
+
+import cv2
+import keras
+from keras.applications.imagenet_utils import preprocess_input
+from keras.backend.tensorflow_backend import set_session
+from keras.models import Model
+from keras.preprocessing import image
+
+from ssd_v2 import SSD300v2
+from ssd_utils import BBoxUtility
+
+np.set_printoptions(suppress=True)
+config = tf.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.95#0.45
+set_session(tf.Session(config=config))
+
+voc_classes = ['Aeroplane', 'Bicycle', 'Bird', 'Boat', 'Bottle',
+               'Bus', 'Car', 'Cat', 'Chair', 'Cow', 'Diningtable',
+               'Dog', 'Horse','Motorbike', 'Person', 'Pottedplant',
+               'Sheep', 'Sofa', 'Train', 'Tvmonitor']
+NUM_CLASSES = len(voc_classes) + 1
+
+input_shape=(300, 300, 3)
+bbox_util = BBoxUtility(NUM_CLASSES)
+
+
 #from environment import create_trainer_environment
 prefix = '/opt/ml'
 model_path = os.path.join(prefix, 'model')
@@ -48,7 +74,9 @@ class ScoringService(object):
     def get_model(cls):
         """Get the model object for this instance, loading it if it's not already loaded."""
         if cls.model == None:
-            cls.model = load_model(os.path.join(model_path, 'model.h5'))
+            cls.model = SSD300(input_shape, num_classes=NUM_CLASSES)
+            cls.model.load_weights('weights_SSD300.hdf5', by_name=True)
+            #cls.model = load_model(os.path.join(model_path, 'model.h5'))
         return cls.model
 
     @classmethod
@@ -63,7 +91,7 @@ class ScoringService(object):
         sess = K.get_session()
         with sess.graph.as_default():
             clf = cls.get_model()
-            return clf.predict(input, batch_size=1)
+            return clf.predict(input, batch_size=1, verbose=0)
 
 # The flask app for serving predictions
 app = flask.Flask(__name__)
@@ -95,6 +123,6 @@ def transformation():
 
     # Do the prediction
     predictions = ScoringService.predict(data)
-    result = json.dumps(predictions.tolist()[0])
+    result = json.dumps(predictions.tolist())
 
     return flask.Response(response=result, status=200, mimetype='application/json')
