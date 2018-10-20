@@ -66,6 +66,23 @@ CLASSES = ['background',
 N_CLASSES = len(CLASSES)-1
 MODEL_NAME = 'model.h5'
 
+# Load the model and additional parameters
+model = ssd_300(image_size=IMAGE_SHAPE,
+                n_classes=N_CLASSES,
+                mode='training',
+                l2_regularization=0.0005,
+                scales=SCALES,
+                aspect_ratios_per_layer=ASPECT_RATIOS,
+                two_boxes_for_ar1=True,
+                steps=STEPS,
+                offsets=OFFSETS,
+                clip_boxes=CLIP_BOXES,
+                variances=VARIANCES,
+                normalize_coords=NORMALIZE_COORDS,
+                subtract_mean=MEAN_COLOR,
+                swap_channels=SWAP_CHANNELS
+            )
+
 # Configure the trainer environemnt for SageMaker training
 env = create_trainer_environment()
 print('creating SageMaker trainer environment:\n%s' % str(env))
@@ -94,7 +111,7 @@ def lr_schedule(epoch):
     else:
         return 0.00001
 
-def load_data(data_dir):
+def load_data(data_dir, model):
     """
     Load training data and split it into training and validation set
     """
@@ -181,30 +198,13 @@ def save(model, model_dir):
 #        json.dump(model_json, outfile)
 
 # Training function
-def train():
+def train(model):
     print("Starting model training ...")
     # Local variables
     data_dir = os.path.join(env.channel_dirs['train'], 'data')
 
     # Load the data
-    traing_generator, val_generator = load_data(data_dir)
-        
-    # Load the model and additional parameters
-    model = ssd_300(image_size=IMAGE_SHAPE,
-                    n_classes=N_CLASSES,
-                    mode='training',
-                    l2_regularization=0.0005,
-                    scales=SCALES,
-                    aspect_ratios_per_layer=ASPECT_RATIOS,
-                    two_boxes_for_ar1=True,
-                    steps=STEPS,
-                    offsets=OFFSETS,
-                    clip_boxes=CLIP_BOXES,
-                    variances=VARIANCES,
-                    normalize_coords=NORMALIZE_COORDS,
-                    subtract_mean=MEAN_COLOR,
-                    swap_channels=SWAP_CHANNELS
-                )
+    train_generator, val_generator = load_data(data_dir, model)
 
     weights_path = './VGG_ILSVRC_16_layers_fc_reduced.h5'
     model.load_weights(weights_path, by_name=True)
@@ -246,7 +246,7 @@ def train():
         
     # Fit the model
     initial_epoch   = 0
-    final_epoch     = 120
+    final_epoch     = EPOCHS
     steps_per_epoch = 1000
     
     model.fit_generator(
@@ -263,5 +263,5 @@ def train():
     save(model, env.model_dir)
 
 if __name__ == '__main__':
-    train()
+    train(model)
     sys.exit(0)
